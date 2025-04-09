@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Portal - Calendar Delegation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 1rem;
+    }
+
+    select, button {
+      width: 100%;
+      padding: 0.6rem;
+      margin-top: 0.5rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #log {
+      margin-top: 1rem;
+      font-style: italic;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Manager Admin Portal</h1>
+
+  <div class="card">
+    <label for="sickWorker">Select Sick Worker</label>
+    <select id="sickWorker">
+      <option value="">-- Select Worker --</option>
+    </select>
+
+    <label for="replacementWorker">Select Replacement Worker</label>
+    <select id="replacementWorker">
+      <option value="">-- Select Worker --</option>
+    </select>
+
+    <button onclick="delegateCalendar()">Share Calendar</button>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const workers = [
+      { id: 'w1', name: 'Diana Smith' },
+      { id: 'w2', name: 'Jason Smith' },
+      { id: 'w3', name: 'Bruce Lee' },
+      { id: 'w4', name: 'Richard McGirt' }
+    ];
+
+    const sickWorkerSelect = document.getElementById('sickWorker');
+    const replacementWorkerSelect = document.getElementById('replacementWorker');
+    const log = document.getElementById('log');
+
+    // Populate dropdowns
+    function populateDropdowns() {
+      workers.forEach(worker => {
+        const option1 = new Option(worker.name, worker.id);
+        const option2 = new Option(worker.name, worker.id);
+        sickWorkerSelect.appendChild(option1);
+        replacementWorkerSelect.appendChild(option2);
+      });
+    }
+
+    // Delegation logic
+    function delegateCalendar() {
+      const sickId = sickWorkerSelect.value;
+      const replacementId = replacementWorkerSelect.value;
+
+      if (!sickId || !replacementId) {
+        log.style.color = "red";
+        log.textContent = "Please select both workers.";
+        return;
+      }
+
+      if (sickId === replacementId) {
+        log.style.color = "red";
+        log.textContent = "Cannot assign calendar to the same worker.";
+        return;
+      }
+
+      const sickName = workers.find(w => w.id === sickId).name;
+      const replacementName = workers.find(w => w.id === replacementId).name;
+
+      // Simulate API or DB update
+      log.style.color = "green";
+      log.textContent = `✅ ${replacementName} now has access to ${sickName}'s calendar.`;
+    }
+
+    // Initialize
+    populateDropdowns();
+  </script>
+
+</body>
+</html>
