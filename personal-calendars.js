@@ -156,13 +156,11 @@ function createEventPageLink(eventData) {
   // Log eventId to make sure it exists
   console.log("Event ID:", eventId);
 
-  // Use localhost URL for local testing
-  const eventUrl = `http://127.0.0.1:5500/personal-calendars.html?eventId=${eventId}`;  // Redirect to the event page with the event ID as a query parameter
+  // Use live URL for the deployed site
+  const eventUrl = `https://richardmcgirt.github.io/proofofconcept/personal-calendars.html?eventId=${eventId}`;  // Redirect to the event page with the event ID as a query parameter
   
   return eventUrl;
 }
-
-
 
 
 function createCalendar(worker, events, month, year) {
@@ -192,17 +190,41 @@ function createCalendar(worker, events, month, year) {
     dayEvents.forEach(ev => {
       const span = document.createElement('span');
       span.className = 'event';
-      span.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
-      
-      // Add a link to the event
-      const eventLink = createEventPageLink(ev);  // You can also use createGoogleCalendarEventLink(ev)
+    
+      const eventLink = createEventPageLink(ev);
       const link = document.createElement('a');
       link.href = eventLink;
-      link.target = '_blank';  // Open in a new tab
-      link.textContent = ev.title;
-      span.innerHTML = '';  // Clear the existing text content and replace with the link
+      link.target = '_blank';
+      link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
       span.appendChild(link);
     
+      // Add hover popup
+      span.addEventListener('mouseenter', () => {
+        const popup = document.createElement('div');
+        popup.className = 'hover-popup';
+        popup.innerHTML = `
+          <strong>${ev.title || 'No Title'}</strong><br>
+${new Date(ev.date).toLocaleDateString('en-US')}<br>
+          ${ev.time || 'No time'}<br>
+          ${ev.description || ''}
+        `;
+        document.body.appendChild(popup);
+    
+        const rect = span.getBoundingClientRect();
+        popup.style.left = `${rect.left + window.scrollX + 10}px`;
+        popup.style.top = `${rect.top + window.scrollY + 25}px`;
+    
+        span._popup = popup;
+      });
+    
+      span.addEventListener('mouseleave', () => {
+        if (span._popup) {
+          span._popup.remove();
+          span._popup = null;
+        }
+      });
+    
+      // Keep the existing click behavior
       span.style.cursor = 'pointer';
       span.addEventListener('click', () => {
         showPopup(ev);
@@ -210,6 +232,7 @@ function createCalendar(worker, events, month, year) {
     
       cell.appendChild(span);
     });
+    
     
 
     grid.appendChild(cell);
