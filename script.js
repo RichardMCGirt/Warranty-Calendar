@@ -2,6 +2,7 @@ const AIRTABLE_API_KEY = 'patXTUS9m8os14OO1.6a81b7bc4dd88871072fe71f28b568070cc7
 const AIRTABLE_BASE_ID = 'appO21PVRA4Qa087I';
 const AIRTABLE_TABLE_ID = 'tbl6EeKPsNuEvt5yJ';
 let eventsByWorker = {}; // globally available
+let isInitialized = false;
 
 
 async function fetchFieldManagers() {
@@ -41,15 +42,19 @@ async function fetchFieldManagers() {
     const eventsMap = {};
   
     data.records.forEach(record => {
-      const manager = record.fields["Field Manager Assigned"];
+      const manager = record.fields["field tech"];
       const startDate = record.fields["FormattedStartDate"];
       const endDate = record.fields["FormattedEndDate"];
-      const lot = record.fields["Lot Number"];
-      const community = record.fields["Community/Neighborhood"];
+      const lotAndCommunity = record.fields["Lot Number and Community/Neighborhood"];
+    
+      console.log("🧪 Record fields:", record.fields); // <-- See actual field names
+      
+      if (!manager || !startDate) {
+        console.warn("⚠️ Skipping record due to missing manager or startDate", record);
+        return;
+      }
   
-      if (!manager || !startDate) return;
-  
-      const title = `${community || 'Unknown'} - Lot ${lot || '?'}`;
+      const title = lotAndCommunity || 'Unknown Lot/Community';
   
       if (!eventsMap[manager]) {
         eventsMap[manager] = [];
@@ -79,11 +84,9 @@ async function fetchFieldManagers() {
   
   let workers = []; // global
 
-  async function populateDropdowns() {
-    workers = await fetchFieldManagers();
-  
-  
-    workers.forEach(worker => {
+
+  function populateDropdowns(workersList) {
+    workersList.forEach(worker => {
       const option1 = new Option(worker.name, worker.id);
       const option2 = new Option(worker.name, worker.id);
       sickWorkerSelect.appendChild(option1);
@@ -91,15 +94,30 @@ async function fetchFieldManagers() {
     });
   }
   
+  
   async function init() {
     workers = await fetchFieldManagers();
-    populateDropdowns();
+    console.log("✅ Field Managers (workers):", workers); // <-- Log workers
+  
+    populateDropdowns(workers);
+  
     eventsByWorker = await fetchEventsByWorker();
+    console.log("✅ Events by Worker:", eventsByWorker); // <-- Log events
+  
+    isInitialized = true;
   }
+  
+  
+  
   init();
 
   
   function delegateCalendar() {
+    if (!isInitialized) {
+      log.style.color = "orange";
+      log.textContent = "Still loading data... Please wait.";
+      return;
+    }
     const sickId = sickWorkerSelect.value;
     const replacementId = replacementWorkerSelect.value;
   
@@ -136,6 +154,8 @@ async function fetchFieldManagers() {
   
   
   function renderCalendar(events) {
+    console.log("Rendering calendar with events:", events); // <-- ✅ add this
+
     calendarBody.innerHTML = "";
   
     const daysInApril = 30;
@@ -182,5 +202,4 @@ async function fetchFieldManagers() {
     return cell;
   }
   
-  populateDropdowns();
   
