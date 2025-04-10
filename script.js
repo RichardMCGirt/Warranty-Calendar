@@ -118,12 +118,22 @@ async function fetchFieldManagers() {
       log.textContent = "Still loading data... Please wait.";
       return;
     }
+  
     const sickId = sickWorkerSelect.value;
     const replacementId = replacementWorkerSelect.value;
+    const startDateInput = document.getElementById("startDate").value;
+    const endDateInput = document.getElementById("endDate").value;
   
     if (!sickId || !replacementId) {
       log.style.color = "red";
       log.textContent = "Please select both workers.";
+      calendar.style.display = "none";
+      return;
+    }
+  
+    if (!startDateInput || !endDateInput) {
+      log.style.color = "red";
+      log.textContent = "Please select both start and end dates.";
       calendar.style.display = "none";
       return;
     }
@@ -135,11 +145,17 @@ async function fetchFieldManagers() {
       return;
     }
   
+    const startDate = new Date(startDateInput);
+    const endDate = new Date(endDateInput);
+    if (startDate > endDate) {
+      log.style.color = "red";
+      log.textContent = "Start date must be before end date.";
+      calendar.style.display = "none";
+      return;
+    }
+  
     const sickName = workers.find(w => w.id === sickId).name;
     const replacementName = workers.find(w => w.id === replacementId).name;
-  
-    log.style.color = "green";
-    log.textContent = `✅ ${replacementName} now has access to ${sickName}'s calendar.`;
   
     const sickEvents = eventsByWorker[sickName] || [];
     const replacementEvents = eventsByWorker[replacementName] || [];
@@ -149,8 +165,18 @@ async function fetchFieldManagers() {
       ...replacementEvents.map(e => ({ ...e, title: `${replacementName}: ${e.title}` }))
     ];
   
-    renderCalendar(combined);
+    // Filter events within the selected date range
+    const filtered = combined.filter(e => {
+      const eventDate = new Date(e.date);
+      return eventDate >= startDate && eventDate <= endDate;
+    });
+  
+    log.style.color = "green";
+    log.textContent = `✅ ${replacementName} now has access to ${sickName}'s calendar from ${startDateInput} to ${endDateInput}.`;
+  
+    renderCalendar(filtered);
   }
+  
   
   
   function renderCalendar(events) {
