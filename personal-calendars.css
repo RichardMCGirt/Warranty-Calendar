@@ -1,0 +1,95 @@
+.calendar-container {
+    margin: 20px;
+    border: 1px solid #e0e0e0; /* Lighter border similar to Google Calendar */
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #ffffff; /* White background */
+  }
+  
+  .calendar-container h3 {
+    margin-top: 0;
+    color: #1a73e8; /* Google Calendar blue color */
+    font-size: 1.2em;
+  }
+  
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+  
+  #monthYear {
+    font-size: 32px;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    display: block;
+    color: #333333; /* Darker text color for month/year */
+  }
+  
+  .day-cell {
+    border: 1px solid #f0f0f0; /* Lighter border for day cells */
+    min-height: 80px;
+    padding: 4px;
+    font-size: 14px; /* Slightly larger text for readability */
+    background-color: #fafafa; /* Light grey background for each day cell */
+  }
+  
+  .day-cell:hover {
+    background-color: #f1f1f1; /* Subtle hover effect for day cells */
+  }
+  
+  .event {
+    display: block;
+    background: #e8f0fe; /* Light blue background for events (Google Calendar style) */
+    padding: 2px 4px;
+    margin-top: 2px;
+    border-radius: 4px;
+    color: #1a73e8; /* Blue text for event titles */
+    font-size: 12px;
+  }
+  
+  .event:hover {
+    background: #d2e3fc; /* Darker blue when hovering over events */
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fadeOutDown {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+  }
+  
+  #calendarNav {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 800px;
+  }
+  
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f5f5; /* Light background color for the entire page */
+  }
+  

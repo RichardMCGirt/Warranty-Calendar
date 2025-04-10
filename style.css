@@ -1,0 +1,99 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 2rem;
+    background: #f4f4f4;
+  }
+  
+  h1 {
+    color: #333;
+  }
+  
+  .card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-width: 500px;
+    margin-bottom: 1rem;
+  }
+  
+  label {
+    font-weight: bold;
+    display: block;
+    margin-top: 1rem;
+  }
+  
+  select, button {
+    width: 100%;
+    padding: 0.6rem;
+    margin-top: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  
+  button {
+    background-color: #007BFF;
+    color: white;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  #log {
+    margin-top: 1rem;
+    font-style: italic;
+    color: green;
+  }
+  
+  #calendar {
+    margin-top: 2rem;
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-width: 1000px;
+    overflow-x: auto;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    vertical-align: top;
+  }
+  
+  th {
+    background-color: #f2f2f2;
+  }
+  
+  td {
+    height: 100px;
+  }
+  
+  .event {
+    background-color: #007BFF;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.85rem;
+    margin-top: 2px;
+    display: block;
+  }
+  
+  nav a {
+    margin-right: 20px;
+    text-decoration: none;
+    color: #007BFF;
+  }
+  
+  nav a:hover {
+    text-decoration: underline;
+  }
+  
