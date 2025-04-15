@@ -123,8 +123,6 @@ function renderCalendars(eventsByWorker) {
   console.log("Rendered calendars for all workers.");
 }
 
-
-
 function showPopup(eventData) {
   document.getElementById("popupTitle").textContent = eventData.title || "No Title";
   document.getElementById("popupDate").textContent = eventData.displayDate || "Unknown";
@@ -162,7 +160,6 @@ function createEventPageLink(eventData) {
   return eventUrl;
 }
 
-
 function createCalendar(worker, events, month, year) {
   const container = document.createElement('div');
   container.className = 'calendar-container';
@@ -186,6 +183,7 @@ function createCalendar(worker, events, month, year) {
     cell.innerHTML = `<strong>${day}</strong>`;
 
     const dayEvents = events.filter(e => e.date === dateStr);
+    dayEvents.sort((a, b) => new Date(`${a.date}T${a.time || '00:00'}`) - new Date(`${b.date}T${b.time || '00:00'}`));
 
     dayEvents.forEach(ev => {
       const span = document.createElement('span');
