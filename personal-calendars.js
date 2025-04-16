@@ -8,51 +8,64 @@ let currentYear = new Date().getFullYear();  // Default to current year
 
 async function fetchEventsByWorker() {
   const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
-  console.log("Fetching data from Airtable...");
+  console.log("📡 Fetching data from Airtable...");
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${AIRTABLE_API_KEY}`
+  const headers = {
+    Authorization: `Bearer ${AIRTABLE_API_KEY}`
+  };
+
+  let allRecords = [];
+  let offset = null;
+
+  do {
+    const queryParams = offset ? `?offset=${offset}` : "";
+    const response = await fetch(`${url}${queryParams}`, { headers });
+
+    if (!response.ok) {
+      console.error("❌ Failed to fetch records:", response.statusText);
+      break;
     }
-  });
 
-  const data = await response.json();
-  console.log("Fetched records:", data.records.length);
+    const data = await response.json();
+    allRecords = allRecords.concat(data.records);
+    offset = data.offset;
+  } while (offset);
+
+  console.log("✅ Fetched records:", allRecords.length);
 
   const eventsMap = {};
 
-  data.records.forEach(record => {
-    const eventId = record.id;  // Use Airtable's record ID as eventId
+  allRecords.forEach(record => {
+    const eventId = record.id;
 
     const startDateRaw = record.fields["FormattedStartDate"];
     const endDateRaw = record.fields["FormattedEndDate"];
     const lotAndCommunity = record.fields["Lot Number and Community/Neighborhood"];
     const description = record.fields["Description of Issue"];
-    const manager = record.fields["field tech"];
-    
+    const manager = record.fields["Division"];
+
     if (!manager || !startDateRaw) return;
-    
+
     const startDate = new Date(startDateRaw);
     const endDate = new Date(endDateRaw || startDateRaw);
-    
-    const time = startDateRaw
+
+    const time = startDate
       ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : null;
 
     const title = lotAndCommunity || 'Unknown Lot/Community';
-    const start = new Date(startDate);
-    const end = new Date(endDate || startDate);
 
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split("T")[0];
       if (!eventsMap[manager]) eventsMap[manager] = [];
-      eventsMap[manager].push({ date: dateStr, title, time, description, eventId: eventId  });
+      eventsMap[manager].push({ date: dateStr, title, time, description, eventId });
     }
   });
 
-  console.log("Grouped events by worker:", eventsMap);
+  console.log("🗂️ Grouped events by worker:", eventsMap);
   return eventsMap;
 }
+
 
 function renderCalendars(eventsByWorker) {
   const monthNames = [
