@@ -84,6 +84,10 @@ function renderCalendars(eventsByWorker) {
   createCalendarDropdown(sortedWorkers);
 
   const urlParams = new URLSearchParams(window.location.search);
+  const cityFromURL = urlParams.get('city');
+  if (cityFromURL) {
+    localStorage.setItem('selectedWorkerCalendar', cityFromURL); // so it auto-filters
+  }
   const eventId = urlParams.get('eventId');
 
   for (const worker of sortedWorkers) {
@@ -136,7 +140,7 @@ function renderCalendars(eventsByWorker) {
     workerCalendarsDiv.appendChild(calendarWrapper);
   }
 
-  // ✅ MOVE THIS PART HERE (after calendars are added to DOM)
+  // ✅ Make sure savedWorker is declared first
   const savedWorker = localStorage.getItem('selectedWorkerCalendar');
   if (savedWorker) {
     const dropdown = document.getElementById('calendar-nav-dropdown');
@@ -156,6 +160,7 @@ function renderCalendars(eventsByWorker) {
 
   console.log("Rendered calendars for all workers.");
 }
+
 
 
 function createCalendarDropdown(workers) {
@@ -255,14 +260,12 @@ function closePopup(event) {
 }
 
 function createEventPageLink(eventData) {
-  const eventId = eventData.eventId; // The unique ID of your event
-  
-
-  // Use live URL for the deployed site
-  const eventUrl = `https://richardmcgirt.github.io/proofofconcept/personal-calendars.html?eventId=${eventId}`;  // Redirect to the event page with the event ID as a query parameter
-  
+  const eventId = eventData.eventId;
+  const city = encodeURIComponent(eventData.manager || ''); // 'manager' is Division
+  const eventUrl = `https://richardmcgirt.github.io/proofofconcept/personal-calendars.html?eventId=${eventId}&city=${city}`;
   return eventUrl;
 }
+
 
 function createCalendar(worker, events, month, year) {
   const container = document.createElement('div');
@@ -296,7 +299,6 @@ function createCalendar(worker, events, month, year) {
       const eventLink = createEventPageLink(ev);
       const link = document.createElement('a');
       link.href = eventLink;
-      link.target = '_blank';
       link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
     
       // 🎨 Add dynamic color based on Field Tech
