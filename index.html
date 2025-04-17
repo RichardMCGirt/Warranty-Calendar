@@ -1,54 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Portal - Calendar Delegation</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Worker Personal Calendars</title>
+
+    <link rel="stylesheet" href="personal-calendars.css">
+
 </head>
 <body>
+  <a href="index.html">Transfer jobs</a>
 
-  <a href="personal-calendars.html">📅 View Personal Worker Calendars</a>
+   
+      
+    <div id="workerCalendars"></div>
 
 
-  <h1>Manager Admin Portal</h1>
 
-  <div class="card">
-    <label for="sickWorker">Select Sick Worker</label>
-    <select id="sickWorker">
-      <option value="">-- Select Worker --</option>
-    </select>
-
-    <label for="replacementWorker">Select Replacement Worker</label>
-    <select id="replacementWorker">
-      <option value="">-- Select Worker --</option>
-<br>
-<br>
-      <label for="startDate">Start Date</label>
-<input type="date" id="startDate">
-
-<label for="endDate">End Date</label>
-<input type="date" id="endDate">
-
-    </select>
-
-    <button onclick="delegateCalendar()">Share Calendar</button>
-    <div id="log"></div>
+    <!-- Backdrop -->
+<div id="popupBackdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999;" onclick="closePopup(event)">
+    <!-- Modal -->
+    <div id="popupModal" style="
+        background:white; 
+        padding:20px; 
+        border-radius:10px; 
+        box-shadow:0 0 10px rgba(0,0,0,0.2); 
+        max-width:400px;
+        margin:10% auto;
+        position:relative;
+        animation: fadeInUp 0.3s ease forwards;
+      ">
+      <h2 id="popupTitle"></h2>
+      <p><strong>Date:</strong> <span id="popupDate"></span></p>
+      <p><strong>Time:</strong> <span id="popupTime"></span></p>
+      
+      <!-- 👇 Insert this line -->
+      <p><strong>Field Tech:</strong> <span id="popupTech" style="
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: bold;
+        color: white;
+      "></span></p>
+      
+      <p><strong>Description:</strong> <span id="popupDesc"></span></p>
+      
+      <button onclick="closePopup()">Close</button>
+    </div>
+  </div>
+  
+  <div id="eventDetails">
+    <!-- Event details will be displayed here -->
   </div>
 
-  <div id="calendar" style="display: none;">
-    <h2>Delegated Calendar - April 2025</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th>
-          <th>Thu</th><th>Fri</th><th>Sat</th>
-        </tr>
-      </thead>
-      <tbody id="calendarBody"></tbody>
-    </table>
-  </div>
 
-  <script src="script.js"></script>
+
+  <script src="personal-calendars.js"></script>
+
+  
 </body>
 </html>
