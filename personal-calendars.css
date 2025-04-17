@@ -75,6 +75,58 @@
     animation: fadeInUp 0.3s ease forwards;
   }
 
+  .calendar-block {
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  
+
+  .calendar-block h3 {
+    text-align: center;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+  }
+  
+
+
+  .calendarNav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: 10px 0;
+  }
+  
+  .calendarNav h1 {
+    margin: 0 auto;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  
+  .calendarNav button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  .calendarNav .prevMonth {
+    left: 0;
+  }
+  
+  .calendarNav .nextMonth {
+    right: 0;
+  }
+  
+  
+  
+  #calendarNav h1 {
+    margin: 0 auto;
+    text-align: center;
+    flex: 1 1 auto;
+  }
+  
+
   .hover-popup {
     position: absolute;
     background: #fff;

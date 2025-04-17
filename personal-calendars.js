@@ -3,8 +3,13 @@ const AIRTABLE_BASE_ID = 'appO21PVRA4Qa087I';
 const AIRTABLE_TABLE_ID = 'tbl6EeKPsNuEvt5yJ';
 
 const workerCalendarsDiv = document.getElementById('workerCalendars');
-let currentMonth = new Date().getMonth();  // Default to current month
-let currentYear = new Date().getFullYear();  // Default to current year
+
+
+
+const monthNames = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 async function fetchEventsByWorker() {
   const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
@@ -68,73 +73,135 @@ async function fetchEventsByWorker() {
 
 
 function renderCalendars(eventsByWorker) {
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
+  const now = new Date();
+  const calendarMonth = now.getMonth();
+  const calendarYear = now.getFullYear();
 
-  const monthYear = `${monthNames[currentMonth]} ${currentYear}`;
-  document.getElementById("monthYear").textContent = monthYear;
-
-  workerCalendarsDiv.innerHTML = ''; // Clear existing calendars
-
-  // Sort workers (field techs) alphabetically by first name
+  workerCalendarsDiv.innerHTML = '';
   const sortedWorkers = Object.keys(eventsByWorker).sort((a, b) => a.localeCompare(b));
+  createCalendarDropdown(sortedWorkers);
 
-  // Get eventId from the URL
   const urlParams = new URLSearchParams(window.location.search);
-  const eventId = urlParams.get('eventId'); // Get the event ID from the query string
+  const eventId = urlParams.get('eventId');
 
-  // Iterate over sorted workers
   for (const worker of sortedWorkers) {
     const events = eventsByWorker[worker];
+    const filteredEvents = eventId
+      ? events
+      : events.filter(e => {
+          const date = new Date(e.date);
+          return date.getMonth() === calendarMonth && date.getFullYear() === calendarYear;
+        });
 
-    const filteredEvents = events.filter(e => {
-      const date = new Date(e.date);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    });
-
-    const calendarContainer = document.createElement('div');
-    calendarContainer.className = 'calendar-block';
+    const calendarWrapper = document.createElement('div');
+    calendarWrapper.className = 'calendar-block';
+    calendarWrapper.dataset.month = calendarMonth;
+    calendarWrapper.dataset.year = calendarYear;
+    calendarWrapper.dataset.worker = worker;
 
     const title = document.createElement('h3');
-    title.textContent = `${worker}`;
+    title.textContent = worker;
     title.style.cursor = 'pointer';
     title.style.color = '#007BFF';
-    
-    const calendarElement = createCalendar(worker, filteredEvents, currentMonth, currentYear);
 
-    // Check if the current worker's calendar is the one to show
+    const nav = document.createElement('div');
+    nav.className = 'calendarNav';
+    nav.innerHTML = `
+      <button class="prevMonth">Previous</button>
+      <h1 class="monthYear">${monthNames[calendarMonth]} ${calendarYear}</h1>
+      <button class="nextMonth">Next</button>
+    `;
+
+    const calendarElement = createCalendar(worker, filteredEvents, calendarMonth, calendarYear);
+
     if (eventId) {
-      // Check if any of the events match the eventId
-      const eventMatches = filteredEvents.some(ev => ev.eventId === eventId);
-      if (eventMatches) {
-        // Show only this calendar if it contains the eventId
-        calendarElement.style.display = 'block';
-      } else {
-        // Hide this calendar if it doesn't contain the eventId
-        calendarElement.style.display = 'none';
-      }
+      calendarElement.style.display = filteredEvents.some(ev => ev.eventId === eventId) ? 'block' : 'none';
     } else {
-      // If no eventId, show all calendars by default
       calendarElement.style.display = 'block';
+    }
+
+    if (filteredEvents.length === 0) {
+      calendarElement.style.display = 'none';
     }
 
     title.addEventListener('click', () => {
       calendarElement.style.display = calendarElement.style.display === 'none' ? 'block' : 'none';
     });
 
-    if (filteredEvents.length === 0) {
-      calendarElement.style.display = 'none';
-    }
+    calendarWrapper.appendChild(title);
+    calendarWrapper.appendChild(nav);
+    calendarWrapper.appendChild(calendarElement);
+    workerCalendarsDiv.appendChild(calendarWrapper);
+  }
 
-    calendarContainer.appendChild(title);
-    calendarContainer.appendChild(calendarElement);
-    workerCalendarsDiv.appendChild(calendarContainer);
+  // ✅ MOVE THIS PART HERE (after calendars are added to DOM)
+  const savedWorker = localStorage.getItem('selectedWorkerCalendar');
+  if (savedWorker) {
+    const dropdown = document.getElementById('calendar-nav-dropdown');
+    if (dropdown) dropdown.value = savedWorker;
+
+    const allCalendars = document.querySelectorAll('.calendar-block');
+    allCalendars.forEach(block => {
+      const worker = block.dataset.worker;
+      block.style.display = (savedWorker === '__show_all__' || worker === savedWorker) ? 'block' : 'none';
+    });
+
+    const target = document.querySelector(`.calendar-block[data-worker="${savedWorker}"]`);
+    if (target && savedWorker !== '__show_all__') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   console.log("Rendered calendars for all workers.");
 }
+
+
+function createCalendarDropdown(workers) {
+  const dropdown = document.createElement('select');
+  dropdown.id = 'calendar-nav-dropdown';
+  dropdown.style.margin = '1rem 0';
+  dropdown.innerHTML = `
+    <option value="">🔽 Jump to Calendar</option>
+    <option value="__show_all__">Show All</option>
+  `;
+
+  workers.forEach(worker => {
+    const option = document.createElement('option');
+    option.value = worker;
+    option.textContent = worker;
+    dropdown.appendChild(option);
+  });
+
+  dropdown.addEventListener('change', () => {
+    const selected = dropdown.value;
+  
+    // ✅ Save to localStorage
+    localStorage.setItem('selectedWorkerCalendar', selected);
+  
+    const allCalendars = document.querySelectorAll('.calendar-block');
+  
+    if (!selected) return;
+  
+    if (selected === '__show_all__') {
+      allCalendars.forEach(block => block.style.display = 'block');
+    } else {
+      allCalendars.forEach(block => {
+        const worker = block.dataset.worker;
+        block.style.display = (worker === selected) ? 'block' : 'none';
+      });
+  
+      const target = document.querySelector(`.calendar-block[data-worker="${selected}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  });
+  
+
+  workerCalendarsDiv.before(dropdown);
+}
+
+
 
 function showPopup(eventData) {
   document.getElementById("popupTitle").textContent = eventData.title || "No Title";
@@ -253,32 +320,75 @@ ${new Date(ev.date).toLocaleDateString('en-US')}<br>
   return container;
 }
 
-// Handle month navigation
-document.getElementById("prevMonth").addEventListener("click", () => {
-  if (currentMonth === 0) {
-    currentMonth = 11;
-    currentYear--;
-  } else {
-    currentMonth--;
-  }
-  updateCalendar();
-});
 
-document.getElementById("nextMonth").addEventListener("click", () => {
-  if (currentMonth === 11) {
-    currentMonth = 0;
-    currentYear++;
-  } else {
-    currentMonth++;
-  }
-  updateCalendar();
-});
 
 async function updateCalendar() {
   const eventsByWorker = await fetchEventsByWorker();
   renderCalendars(eventsByWorker);
 }
 
+workerCalendarsDiv.addEventListener('click', (e) => {
+  if (e.target.classList.contains('prevMonth') || e.target.classList.contains('nextMonth')) {
+    const calendarBlock = e.target.closest('.calendar-block');
+    if (!calendarBlock) return;
+
+    let month = parseInt(calendarBlock.dataset.month, 10);
+    let year = parseInt(calendarBlock.dataset.year, 10);
+
+    if (isNaN(month) || isNaN(year)) {
+      console.warn("❌ Invalid month or year from dataset:", calendarBlock.dataset);
+      return;
+    }
+
+    if (e.target.classList.contains('prevMonth')) {
+      if (month === 0) {
+        month = 11;
+        year--;
+      } else {
+        month--;
+      }
+    }
+
+    if (e.target.classList.contains('nextMonth')) {
+      if (month === 11) {
+        month = 0;
+        year++;
+      } else {
+        month++;
+      }
+    }
+
+    calendarBlock.dataset.month = month;
+    calendarBlock.dataset.year = year;
+
+    const monthHeader = calendarBlock.querySelector('.monthYear');
+    if (monthHeader) {
+      monthHeader.textContent = `${monthNames[month]} ${year}`;
+    } else {
+      console.warn("❌ Could not find .monthYear header to update!");
+    }
+
+    const worker = calendarBlock.querySelector('h3')?.textContent;
+    if (!worker) return;
+
+    fetchEventsByWorker().then(eventsByWorker => {
+      const filteredEvents = eventsByWorker[worker]?.filter(e => {
+        const date = new Date(e.date);
+        return date.getMonth() === month && date.getFullYear() === year;
+      }) || [];
+
+      const calendarEl = calendarBlock.querySelector('.calendar-container');
+      if (calendarEl) {
+        calendarEl.replaceWith(createCalendar(worker, filteredEvents, month, year));
+      }
+    });
+  }
+});
+
+
+
+
+// 👇 This block should already be in your code
 (async () => {
   const eventsByWorker = await fetchEventsByWorker();
   renderCalendars(eventsByWorker);
