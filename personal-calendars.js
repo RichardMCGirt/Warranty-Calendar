@@ -259,12 +259,12 @@ function closePopup(event) {
   }
 }
 
-function createEventPageLink(eventData) {
-  const eventId = eventData.eventId;
-  const division = encodeURIComponent(eventData.division || '');
-  const eventUrl = `https://calendar.vanirinstalledsales.info/?eventId=${eventId}&division=${encodeURIComponent(division)}`;
-  return eventUrl;
-}
+//function createEventPageLink(eventData) {
+  //const eventId = eventData.eventId;
+  //const division = encodeURIComponent(eventData.division || '');
+  //const eventUrl = `https://calendar.vanirinstalledsales.info/?eventId=${eventId}&division=${encodeURIComponent(division)}`;
+  //return eventUrl;
+// }
 
 
 
@@ -297,10 +297,10 @@ function createCalendar(worker, events, month, year) {
       const span = document.createElement('span');
       span.className = 'event';
     
-      const eventLink = createEventPageLink(ev);
-      const link = document.createElement('a');
-      link.href = eventLink;
-      link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
+    //  const eventLink = createEventPageLink(ev);
+   const link = document.createElement('a');
+     // link.href = eventLink;
+     link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
     
       // 🎨 Add dynamic color based on Field Tech
       const techColor = getColorForTech(ev.fieldTech);
@@ -351,17 +351,13 @@ function createCalendar(worker, events, month, year) {
       });
     
       span.style.cursor = 'pointer';
-      span.addEventListener('click', () => {
-        showPopup(ev);
-      });
+     // span.addEventListener('click', () => {
+     //   showPopup(ev);
+    //  });
     
       cell.appendChild(span);
     });
-    
-    
-    
-    
-
+  
     grid.appendChild(cell);
   }
 
@@ -434,10 +430,6 @@ workerCalendarsDiv.addEventListener('click', (e) => {
   }
 });
 
-
-
-
-// 👇 This block should already be in your code
 (async () => {
   const eventsByWorker = await fetchEventsByWorker();
   renderCalendars(eventsByWorker);
