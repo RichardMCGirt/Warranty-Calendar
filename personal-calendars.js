@@ -48,10 +48,10 @@ async function fetchEventsByWorker() {
     const endDateRaw = record.fields["FormattedEndDate"];
     const lotAndCommunity = record.fields["Lot Number and Community/Neighborhood"];
     const description = record.fields["Description of Issue"];
-    const manager = record.fields["Division"];
+    const division = record.fields["Division"];
     const fieldTech = record.fields["field tech"];
 
-    if (!manager || !startDateRaw) return;
+    if (!division || !startDateRaw) return;
 
     const startDate = new Date(startDateRaw);
     const endDate = new Date(endDateRaw || startDateRaw);
@@ -64,8 +64,8 @@ async function fetchEventsByWorker() {
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split("T")[0];
-      if (!eventsMap[manager]) eventsMap[manager] = [];
-      eventsMap[manager].push({ date: dateStr, title, time, description, eventId, fieldTech });
+      if (!eventsMap[division]) eventsMap[division] = [];
+      eventsMap[division].push({ date: dateStr, title, time, description, eventId, fieldTech });
     }
   });
 
@@ -84,9 +84,9 @@ function renderCalendars(eventsByWorker) {
   createCalendarDropdown(sortedWorkers);
 
   const urlParams = new URLSearchParams(window.location.search);
-  const cityFromURL = urlParams.get('city');
-  if (cityFromURL) {
-    localStorage.setItem('selectedWorkerCalendar', cityFromURL); // so it auto-filters
+  const divisionFromURL = urlParams.get('division');
+  if (divisionFromURL) {
+    localStorage.setItem('selectedWorkerCalendar', divisionFromURL); // so it auto-filters
   }
   const eventId = urlParams.get('eventId');
 
@@ -261,8 +261,8 @@ function closePopup(event) {
 
 function createEventPageLink(eventData) {
   const eventId = eventData.eventId;
-  const city = encodeURIComponent(eventData.manager || '');
-  const eventUrl = `https://calendar.vanirinstalledsales.info/?eventId=${eventId}&city=${city}`;
+  const division = encodeURIComponent(eventData.division || '');
+  const eventUrl = `https://calendar.vanirinstalledsales.info/?eventId=${eventId}&division=${encodeURIComponent(division)}`;
   return eventUrl;
 }
 
