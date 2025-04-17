@@ -1,6 +1,7 @@
 const AIRTABLE_API_KEY = 'patXTUS9m8os14OO1.6a81b7bc4dd88871072fe71f28b568070cc79035bc988de3d4228d52239c8238';
 const AIRTABLE_BASE_ID = 'appO21PVRA4Qa087I';
 const AIRTABLE_TABLE_ID = 'tbl6EeKPsNuEvt5yJ';
+const techColorMap = {}; // 🧠 Stores assigned colors per tech
 
 const workerCalendarsDiv = document.getElementById('workerCalendars');
 
@@ -48,6 +49,7 @@ async function fetchEventsByWorker() {
     const lotAndCommunity = record.fields["Lot Number and Community/Neighborhood"];
     const description = record.fields["Description of Issue"];
     const manager = record.fields["Division"];
+    const fieldTech = record.fields["field tech"];
 
     if (!manager || !startDateRaw) return;
 
@@ -63,7 +65,7 @@ async function fetchEventsByWorker() {
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split("T")[0];
       if (!eventsMap[manager]) eventsMap[manager] = [];
-      eventsMap[manager].push({ date: dateStr, title, time, description, eventId });
+      eventsMap[manager].push({ date: dateStr, title, time, description, eventId, fieldTech });
     }
   });
 
@@ -209,12 +211,36 @@ function showPopup(eventData) {
   document.getElementById("popupTime").textContent = eventData.time || "N/A";
   document.getElementById("popupDesc").textContent = eventData.description || "No description provided.";
 
+  // 🛠️ Add Field Tech with color badge
+  const techSpan = document.getElementById("popupTech");
+  if (techSpan) {
+    techSpan.textContent = eventData.fieldTech || "Unknown";
+    techSpan.style.backgroundColor = getColorForTech(eventData.fieldTech);
+  }
+
   const backdrop = document.getElementById("popupBackdrop");
   const modal = document.getElementById("popupModal");
 
   backdrop.style.display = "block";
   modal.style.animation = "fadeInUp 0.3s ease forwards";
 }
+
+function getColorForTech(tech) {
+  if (!tech) return '#666'; // Default if no tech name
+
+  // If already assigned, return the same color
+  if (techColorMap[tech]) {
+    return techColorMap[tech];
+  }
+
+  // Otherwise, generate a random bright color
+  const hue = Math.floor(Math.random() * 360);
+  const color = `hsl(${hue}, 70%, 50%)`;
+  techColorMap[tech] = color;
+
+  return color;
+}
+
 
 function closePopup(event) {
   const backdrop = document.getElementById("popupBackdrop");
@@ -231,8 +257,6 @@ function closePopup(event) {
 function createEventPageLink(eventData) {
   const eventId = eventData.eventId; // The unique ID of your event
   
-  // Log eventId to make sure it exists
-  console.log("Event ID:", eventId);
 
   // Use live URL for the deployed site
   const eventUrl = `https://richardmcgirt.github.io/proofofconcept/personal-calendars.html?eventId=${eventId}`;  // Redirect to the event page with the event ID as a query parameter
@@ -274,18 +298,39 @@ function createCalendar(worker, events, month, year) {
       link.href = eventLink;
       link.target = '_blank';
       link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
+    
+      // 🎨 Add dynamic color based on Field Tech
+      const techColor = getColorForTech(ev.fieldTech);
+      link.style.backgroundColor = techColor;
+      link.style.color = '#fff';
+      link.style.padding = '2px 6px';
+      link.style.borderRadius = '4px';
+      link.style.display = 'inline-block';
+      link.style.marginTop = '4px';
+      link.style.fontWeight = 'bold';
+      link.style.textDecoration = 'none';
+    
       span.appendChild(link);
     
-      // Add hover popup
+      // 🪄 Add hover popup to show full info + Field Tech
       span.addEventListener('mouseenter', () => {
         const popup = document.createElement('div');
         popup.className = 'hover-popup';
         popup.innerHTML = `
           <strong>${ev.title || 'No Title'}</strong><br>
-${new Date(ev.date).toLocaleDateString('en-US')}<br>
+          ${new Date(ev.date).toLocaleDateString('en-US')}<br>
           ${ev.time || 'No time'}<br>
+          <em>Field Tech:</em> ${ev.fieldTech || 'Unknown'}<br>
           ${ev.description || ''}
         `;
+        popup.style.backgroundColor = techColor;
+        popup.style.color = '#fff';
+        popup.style.padding = '10px';
+        popup.style.borderRadius = '6px';
+        popup.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+        popup.style.position = 'absolute';
+        popup.style.zIndex = '9999';
+    
         document.body.appendChild(popup);
     
         const rect = span.getBoundingClientRect();
@@ -302,7 +347,6 @@ ${new Date(ev.date).toLocaleDateString('en-US')}<br>
         }
       });
     
-      // Keep the existing click behavior
       span.style.cursor = 'pointer';
       span.addEventListener('click', () => {
         showPopup(ev);
@@ -310,6 +354,8 @@ ${new Date(ev.date).toLocaleDateString('en-US')}<br>
     
       cell.appendChild(span);
     });
+    
+    
     
     
 
