@@ -261,10 +261,11 @@ function closePopup(event) {
 
 function createEventPageLink(eventData) {
   const eventId = eventData.eventId;
-  const city = encodeURIComponent(eventData.manager || ''); // 'manager' is Division
-  const eventUrl = `https://richardmcgirt.github.io/proofofconcept/personal-calendars.html?eventId=${eventId}&city=${city}`;
+  const city = encodeURIComponent(eventData.manager || '');
+  const eventUrl = `https://calendar.vanirinstalledsales.info/?eventId=${eventId}&city=${city}`;
   return eventUrl;
 }
+
 
 
 function createCalendar(worker, events, month, year) {
