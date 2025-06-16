@@ -5,8 +5,6 @@ const techColorMap = {}; // 🧠 Stores assigned colors per tech
 
 const workerCalendarsDiv = document.getElementById('workerCalendars');
 
-
-
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
@@ -80,17 +78,37 @@ function renderCalendars(eventsByWorker) {
   const calendarYear = now.getFullYear();
 
   workerCalendarsDiv.innerHTML = '';
-  const sortedWorkers = Object.keys(eventsByWorker).sort((a, b) => a.localeCompare(b));
-  createCalendarDropdown(sortedWorkers);
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const sortedWorkers = Object.keys(eventsByWorker)
+  .filter(worker => {
+    return eventsByWorker[worker].some(event => {
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate >= today;
+    });
+  })
+  .sort((a, b) => a.localeCompare(b));
+
+createCalendarDropdown(sortedWorkers, eventsByWorker);
+
 
   const urlParams = new URLSearchParams(window.location.search);
   const divisionFromURL = urlParams.get('division');
-  if (divisionFromURL) {
-    localStorage.setItem('selectedWorkerCalendar', divisionFromURL); // so it auto-filters
-  }
   const eventId = urlParams.get('eventId');
 
+  if (divisionFromURL) {
+    localStorage.setItem('selectedWorkerCalendar', divisionFromURL);
+  }
+
+  const onlyShowOneDivision = divisionFromURL && divisionFromURL !== '__show_all__';
+
   for (const worker of sortedWorkers) {
+    if (onlyShowOneDivision && worker !== divisionFromURL) {
+      continue; // ✅ Skip non-matching divisions
+    }
+
     const events = eventsByWorker[worker];
     const filteredEvents = eventId
       ? events
@@ -123,11 +141,7 @@ function renderCalendars(eventsByWorker) {
     if (eventId) {
       calendarElement.style.display = filteredEvents.some(ev => ev.eventId === eventId) ? 'block' : 'none';
     } else {
-      calendarElement.style.display = 'block';
-    }
-
-    if (filteredEvents.length === 0) {
-      calendarElement.style.display = 'none';
+      calendarElement.style.display = filteredEvents.length > 0 ? 'block' : 'none';
     }
 
     title.addEventListener('click', () => {
@@ -140,11 +154,13 @@ function renderCalendars(eventsByWorker) {
     workerCalendarsDiv.appendChild(calendarWrapper);
   }
 
-  // ✅ Make sure savedWorker is declared first
   const savedWorker = localStorage.getItem('selectedWorkerCalendar');
   if (savedWorker) {
     const dropdown = document.getElementById('calendar-nav-dropdown');
-    if (dropdown) dropdown.value = savedWorker;
+    if (dropdown) {
+      dropdown.value = savedWorker;
+      if (divisionFromURL) dropdown.disabled = true; // Optional: Disable dropdown if loaded from ?division
+    }
 
     const allCalendars = document.querySelectorAll('.calendar-block');
     allCalendars.forEach(block => {
@@ -161,9 +177,7 @@ function renderCalendars(eventsByWorker) {
   console.log("Rendered calendars for all workers.");
 }
 
-
-
-function createCalendarDropdown(workers) {
+function createCalendarDropdown(workers, eventsByWorker) {
   const dropdown = document.createElement('select');
   dropdown.id = 'calendar-nav-dropdown';
   dropdown.style.margin = '1rem 0';
@@ -172,41 +186,68 @@ function createCalendarDropdown(workers) {
     <option value="__show_all__">Show All</option>
   `;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   workers.forEach(worker => {
+    const futureEvents = (eventsByWorker[worker] || []).filter(event => {
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate >= today;
+    });
+
+    if (futureEvents.length === 0) return;
+
     const option = document.createElement('option');
     option.value = worker;
     option.textContent = worker;
     dropdown.appendChild(option);
   });
 
-  dropdown.addEventListener('change', () => {
-    const selected = dropdown.value;
-  
-    // ✅ Save to localStorage
-    localStorage.setItem('selectedWorkerCalendar', selected);
-  
-    const allCalendars = document.querySelectorAll('.calendar-block');
-  
-    if (!selected) return;
-  
-    if (selected === '__show_all__') {
-      allCalendars.forEach(block => block.style.display = 'block');
+dropdown.addEventListener('change', () => {
+  const selected = dropdown.value;
+  console.log(`📌 Dropdown changed: selected division = "${selected}"`);
+
+  localStorage.setItem('selectedWorkerCalendar', selected);
+
+  // 🔗 Update the URL query parameter
+  const url = new URL(window.location.href);
+  url.searchParams.set('division', selected);
+  window.history.replaceState({}, '', url);
+  console.log(`🔗 URL updated to: ${url.href}`);
+
+  const allCalendars = document.querySelectorAll('.calendar-block');
+
+  if (!selected) {
+    console.log("⚠️ No division selected, skipping display update.");
+    return;
+  }
+
+  if (selected === '__show_all__') {
+    console.log("🗂️ Showing all calendars.");
+    allCalendars.forEach(block => block.style.display = 'block');
+  } else {
+    console.log(`🎯 Showing only calendar for division: ${selected}`);
+    allCalendars.forEach(block => {
+      const worker = block.dataset.worker;
+      block.style.display = (worker === selected) ? 'block' : 'none';
+    });
+
+    const target = document.querySelector(`.calendar-block[data-worker="${selected}"]`);
+    if (target) {
+      console.log(`📦 Scrolling into view: ${selected}`);
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
-      allCalendars.forEach(block => {
-        const worker = block.dataset.worker;
-        block.style.display = (worker === selected) ? 'block' : 'none';
-      });
-  
-      const target = document.querySelector(`.calendar-block[data-worker="${selected}"]`);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      console.warn(`❌ Could not find calendar block for: ${selected}`);
     }
-  });
-  
+  }
+});
 
   workerCalendarsDiv.before(dropdown);
 }
+
+
+
 
 
 
