@@ -48,6 +48,7 @@ async function fetchEventsByWorker() {
     const description = record.fields["Description of Issue"];
     const division = record.fields["Division"];
     const fieldTech = record.fields["field tech"];
+const warrantyId = record.fields["Warranty Record ID"];
 
     if (!division || !startDateRaw) return;
 
@@ -63,7 +64,7 @@ async function fetchEventsByWorker() {
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split("T")[0];
       if (!eventsMap[division]) eventsMap[division] = [];
-      eventsMap[division].push({ date: dateStr, title, time, description, eventId, fieldTech });
+eventsMap[division].push({ date: dateStr, title, time, description, eventId, fieldTech, warrantyId });
     }
   });
 
@@ -339,9 +340,15 @@ function createCalendar(worker, events, month, year) {
       span.className = 'event';
     
     //  const eventLink = createEventPageLink(ev);
-   const link = document.createElement('a');
-     // link.href = eventLink;
-     link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
+const link = document.createElement('a');
+if (ev.warrantyId) {
+  link.href = `https://warranty-updates.vanirinstalledsales.info/job-details.html?id=${ev.warrantyId}`;
+  link.target = "_blank"; // optional: open in new tab
+} else {
+  link.href = "#"; // fallback
+}
+link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
+
     
       // 🎨 Add dynamic color based on Field Tech
       const techColor = getColorForTech(ev.fieldTech);
