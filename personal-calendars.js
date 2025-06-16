@@ -10,6 +10,13 @@ const monthNames = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+function isMobileDevice() {
+  console.log(`📏 Viewport width: ${window.innerWidth}px`);
+  return window.innerWidth <= 768;
+}
+
+
+
 async function fetchEventsByWorker() {
   const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`;
   console.log("📡 Fetching data from Airtable...");
@@ -244,13 +251,21 @@ dropdown.addEventListener('change', () => {
   }
 });
 
-  workerCalendarsDiv.before(dropdown);
+let container = document.getElementById('calendarContainer');
+if (!container) {
+  container = document.createElement('div');
+  container.id = 'calendarContainer';
+  container.style.width = '100%';
+  container.style.boxSizing = 'border-box';
+
+  // Wrap the calendars
+  workerCalendarsDiv.parentNode.insertBefore(container, workerCalendarsDiv);
+  container.appendChild(dropdown);
+  container.appendChild(workerCalendarsDiv);
+} else {
+  container.insertBefore(dropdown, workerCalendarsDiv);
 }
-
-
-
-
-
+}
 
 function showPopup(eventData) {
   document.getElementById("popupTitle").textContent = eventData.title || "No Title";
@@ -288,7 +303,6 @@ function getColorForTech(tech) {
   return color;
 }
 
-
 function closePopup(event) {
   const backdrop = document.getElementById("popupBackdrop");
   const modal = document.getElementById("popupModal");
@@ -301,15 +315,6 @@ function closePopup(event) {
   }
 }
 
-//function createEventPageLink(eventData) {
-  //const eventId = eventData.eventId;
-  //const division = encodeURIComponent(eventData.division || '');
-  //const eventUrl = `https://calendar.vanirinstalledsales.info/?eventId=${eventId}&division=${encodeURIComponent(division)}`;
-  //return eventUrl;
-// }
-
-
-
 function createCalendar(worker, events, month, year) {
   const container = document.createElement('div');
   container.className = 'calendar-container';
@@ -317,40 +322,62 @@ function createCalendar(worker, events, month, year) {
   const grid = document.createElement('div');
   grid.className = 'calendar-grid';
 
-  const date = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startDay = date.getDay();
+  const isMobile = isMobileDevice();
+  console.log(`📱 Device type: ${isMobile ? 'Mobile (weekly view)' : 'Desktop (monthly view)'}`);
 
-  for (let i = 0; i < startDay; i++) {
-    grid.appendChild(document.createElement('div'));
+  const today = new Date();
+  let startDate, endDate;
+
+  if (isMobile) {
+    const dayOfWeek = today.getDay(); // Sunday = 0
+    startDate = new Date(today);
+    startDate.setDate(today.getDate() - dayOfWeek); // Start of week
+    endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6); // End of week
+  } else {
+    startDate = new Date(year, month, 1);
+    endDate = new Date(year, month + 1, 0);
   }
 
-  for (let day = 1; day <= daysInMonth; day++) {
+  console.log(`📆 Rendering calendar for: ${startDate.toDateString()} → ${endDate.toDateString()}`);
+
+  const daysToRender = [];
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    daysToRender.push(new Date(d));
+  }
+
+  if (!isMobile) {
+    const firstDay = startDate.getDay();
+    for (let i = 0; i < firstDay; i++) {
+      grid.appendChild(document.createElement('div'));
+    }
+  }
+
+  daysToRender.forEach(dateObj => {
+    const day = dateObj.getDate();
+    const dateStr = dateObj.toISOString().split("T")[0];
     const cell = document.createElement('div');
     cell.className = 'day-cell';
-
-    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     cell.innerHTML = `<strong>${day}</strong>`;
 
     const dayEvents = events.filter(e => e.date === dateStr);
+    console.log(`📅 ${dateStr}: ${dayEvents.length} event(s)`);
+
     dayEvents.sort((a, b) => new Date(`${a.date}T${a.time || '00:00'}`) - new Date(`${b.date}T${b.time || '00:00'}`));
 
     dayEvents.forEach(ev => {
       const span = document.createElement('span');
       span.className = 'event';
-    
-    //  const eventLink = createEventPageLink(ev);
-const link = document.createElement('a');
-if (ev.warrantyId) {
-  link.href = `https://warranty-updates.vanirinstalledsales.info/job-details.html?id=${ev.warrantyId}`;
-  link.target = "_blank"; // optional: open in new tab
-} else {
-  link.href = "#"; // fallback
-}
-link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
 
-    
-      // 🎨 Add dynamic color based on Field Tech
+      const link = document.createElement('a');
+      if (ev.warrantyId) {
+        link.href = `https://warranty-updates.vanirinstalledsales.info/job-details.html?id=${ev.warrantyId}`;
+        link.target = "_blank";
+      } else {
+        link.href = "#";
+      }
+      link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
+
       const techColor = getColorForTech(ev.fieldTech);
       link.style.backgroundColor = techColor;
       link.style.color = '#fff';
@@ -360,10 +387,9 @@ link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
       link.style.marginTop = '4px';
       link.style.fontWeight = 'bold';
       link.style.textDecoration = 'none';
-    
+
       span.appendChild(link);
-    
-      // 🪄 Add hover popup to show full info + Field Tech
+
       span.addEventListener('mouseenter', () => {
         const popup = document.createElement('div');
         popup.className = 'hover-popup';
@@ -381,39 +407,35 @@ link.textContent = `${ev.time ? ev.time + ' - ' : ''}${ev.title}`;
         popup.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
         popup.style.position = 'absolute';
         popup.style.zIndex = '9999';
-    
+
         document.body.appendChild(popup);
-    
         const rect = span.getBoundingClientRect();
         popup.style.left = `${rect.left + window.scrollX + 10}px`;
         popup.style.top = `${rect.top + window.scrollY + 25}px`;
-    
+
         span._popup = popup;
+
+        console.log(`🟦 Showing popup for: ${ev.title} (${ev.date})`);
       });
-    
+
       span.addEventListener('mouseleave', () => {
         if (span._popup) {
           span._popup.remove();
           span._popup = null;
+          console.log(`⬛ Hiding popup for: ${ev.title}`);
         }
       });
-    
+
       span.style.cursor = 'pointer';
-     // span.addEventListener('click', () => {
-     //   showPopup(ev);
-    //  });
-    
       cell.appendChild(span);
     });
-  
+
     grid.appendChild(cell);
-  }
+  });
 
   container.appendChild(grid);
   return container;
 }
-
-
 
 async function updateCalendar() {
   const eventsByWorker = await fetchEventsByWorker();
@@ -481,4 +503,14 @@ workerCalendarsDiv.addEventListener('click', (e) => {
 (async () => {
   const eventsByWorker = await fetchEventsByWorker();
   renderCalendars(eventsByWorker);
+
+  // ✅ 👇 Add scroll-to-first calendar on mobile here
+  if (isMobileDevice()) {
+    const firstBlock = document.querySelector('.calendar-block');
+    if (firstBlock) {
+      console.log("📱 Auto-scrolling to first calendar block...");
+      firstBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
 })();
+
