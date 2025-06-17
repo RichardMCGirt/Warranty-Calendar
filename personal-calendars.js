@@ -2,6 +2,7 @@ const AIRTABLE_API_KEY = 'patXTUS9m8os14OO1.6a81b7bc4dd88871072fe71f28b568070cc7
 const AIRTABLE_BASE_ID = 'appO21PVRA4Qa087I';
 const AIRTABLE_TABLE_ID = 'tbl6EeKPsNuEvt5yJ';
 const techColorMap = {}; // 🧠 Stores assigned colors per tech
+let globalEventsByWorker = {};
 
 const workerCalendarsDiv = document.getElementById('workerCalendars');
 
@@ -86,37 +87,30 @@ function renderCalendars(eventsByWorker) {
   const calendarYear = now.getFullYear();
 
   workerCalendarsDiv.innerHTML = '';
-const today = new Date();
-today.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-const sortedWorkers = Object.keys(eventsByWorker)
-  .filter(worker => {
-    return eventsByWorker[worker].some(event => {
-      const eventDate = new Date(event.date);
-      eventDate.setHours(0, 0, 0, 0);
-      return eventDate >= today;
-    });
-  })
-  .sort((a, b) => a.localeCompare(b));
+  const sortedWorkers = Object.keys(eventsByWorker)
+    .filter(worker => {
+      return eventsByWorker[worker].some(event => {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate >= today;
+      });
+    })
+    .sort((a, b) => a.localeCompare(b));
 
-createCalendarDropdown(sortedWorkers, eventsByWorker);
+  createCalendarDropdown(sortedWorkers, eventsByWorker);
 
-
+  // Normalize URL param
   const urlParams = new URLSearchParams(window.location.search);
-  const divisionFromURL = urlParams.get('division');
+  const divisionFromURL = decodeURIComponent(urlParams.get('division') || '').trim().toLowerCase();
   const eventId = urlParams.get('eventId');
 
-  if (divisionFromURL) {
-    localStorage.setItem('selectedWorkerCalendar', divisionFromURL);
-  }
-
-  const onlyShowOneDivision = divisionFromURL && divisionFromURL !== '__show_all__';
+  const visibleEvents = [];
 
   for (const worker of sortedWorkers) {
-    if (onlyShowOneDivision && worker !== divisionFromURL) {
-      continue; // ✅ Skip non-matching divisions
-    }
-
+    const normalizedWorker = worker.trim().toLowerCase();
     const events = eventsByWorker[worker];
     const filteredEvents = eventId
       ? events
@@ -125,11 +119,13 @@ createCalendarDropdown(sortedWorkers, eventsByWorker);
           return date.getMonth() === calendarMonth && date.getFullYear() === calendarYear;
         });
 
+    visibleEvents.push(...filteredEvents);
+
     const calendarWrapper = document.createElement('div');
     calendarWrapper.className = 'calendar-block';
+    calendarWrapper.dataset.worker = normalizedWorker;
     calendarWrapper.dataset.month = calendarMonth;
     calendarWrapper.dataset.year = calendarYear;
-    calendarWrapper.dataset.worker = worker;
 
     const title = document.createElement('h3');
     title.textContent = worker;
@@ -146,11 +142,7 @@ createCalendarDropdown(sortedWorkers, eventsByWorker);
 
     const calendarElement = createCalendar(worker, filteredEvents, calendarMonth, calendarYear);
 
-    if (eventId) {
-      calendarElement.style.display = filteredEvents.some(ev => ev.eventId === eventId) ? 'block' : 'none';
-    } else {
-      calendarElement.style.display = filteredEvents.length > 0 ? 'block' : 'none';
-    }
+    calendarElement.style.display = filteredEvents.length > 0 || eventId ? 'block' : 'none';
 
     title.addEventListener('click', () => {
       calendarElement.style.display = calendarElement.style.display === 'none' ? 'block' : 'none';
@@ -162,28 +154,38 @@ createCalendarDropdown(sortedWorkers, eventsByWorker);
     workerCalendarsDiv.appendChild(calendarWrapper);
   }
 
-  const savedWorker = localStorage.getItem('selectedWorkerCalendar');
-  if (savedWorker) {
-    const dropdown = document.getElementById('calendar-nav-dropdown');
-    if (dropdown) {
-      dropdown.value = savedWorker;
-      if (divisionFromURL) dropdown.disabled = true; // Optional: Disable dropdown if loaded from ?division
-    }
+  // Apply saved or URL-selected filter
+  const selected = (divisionFromURL || localStorage.getItem('selectedWorkerCalendar') || '').trim().toLowerCase();
+  const dropdown = document.getElementById('calendar-nav-dropdown');
 
-    const allCalendars = document.querySelectorAll('.calendar-block');
-    allCalendars.forEach(block => {
-      const worker = block.dataset.worker;
-      block.style.display = (savedWorker === '__show_all__' || worker === savedWorker) ? 'block' : 'none';
-    });
-
-    const target = document.querySelector(`.calendar-block[data-worker="${savedWorker}"]`);
-    if (target && savedWorker !== '__show_all__') {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+  if (dropdown) {
+    dropdown.value = selected || '';
   }
 
+  document.querySelectorAll('.calendar-block').forEach(block => {
+    const worker = block.dataset.worker;
+    block.style.display = (selected === '__show_all__' || !selected || worker === selected)
+      ? 'block'
+      : 'none';
+  });
+
+  if (selected && selected !== '__show_all__') {
+    scrollToWorkerCalendar(selected);
+  }
+
+const currentlyVisibleWorkers = sortedWorkers.filter(worker => {
+  const normalizedWorker = worker.trim().toLowerCase();
+  return selected === '__show_all__' || !selected || normalizedWorker === selected;
+});
+
+const eventsForVisibleDivisions = currentlyVisibleWorkers.flatMap(worker => 
+  eventsByWorker[worker] || []
+);
+
+renderTechColorKey(eventsForVisibleDivisions);
   console.log("Rendered calendars for all workers.");
 }
+
 
 function createCalendarDropdown(workers, eventsByWorker) {
   const dropdown = document.createElement('select');
@@ -211,14 +213,12 @@ function createCalendarDropdown(workers, eventsByWorker) {
     option.textContent = worker;
     dropdown.appendChild(option);
   });
-
 dropdown.addEventListener('change', () => {
   const selected = dropdown.value;
   console.log(`📌 Dropdown changed: selected division = "${selected}"`);
 
   localStorage.setItem('selectedWorkerCalendar', selected);
 
-  // 🔗 Update the URL query parameter
   const url = new URL(window.location.href);
   url.searchParams.set('division', selected);
   window.history.replaceState({}, '', url);
@@ -238,18 +238,50 @@ dropdown.addEventListener('change', () => {
     console.log(`🎯 Showing only calendar for division: ${selected}`);
     allCalendars.forEach(block => {
       const worker = block.dataset.worker;
-      block.style.display = (worker === selected) ? 'block' : 'none';
+      block.style.display = (worker.trim().toLowerCase() === selected.trim().toLowerCase()) ? 'block' : 'none';
     });
-
-    const target = document.querySelector(`.calendar-block[data-worker="${selected}"]`);
-    if (target) {
-      console.log(`📦 Scrolling into view: ${selected}`);
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      console.warn(`❌ Could not find calendar block for: ${selected}`);
-    }
   }
+
+  // ✅ Delay this to ensure DOM visibility is fully applied
+setTimeout(() => {
+  const visibleEvents = [];
+
+  document.querySelectorAll('.calendar-block').forEach(block => {
+    if (block.style.display === 'none') return;
+
+    const calendarEl = block.querySelector('.calendar-container');
+    if (!calendarEl) return;
+
+    const eventLinks = calendarEl.querySelectorAll('.event a');
+
+    eventLinks.forEach(link => {
+      const techName = link.dataset.fieldTech;
+      if (techName) {
+        visibleEvents.push({ fieldTech: techName });
+      }
+    });
+  });
+
+  const uniqueVisibleTechs = Array.from(
+    new Set(visibleEvents.map(e => e.fieldTech))
+  ).filter(Boolean);
+
+  const filteredVisibleEvents = uniqueVisibleTechs.map(fieldTech => ({ fieldTech }));
+
+  console.log("🎯 Visible techs after dropdown filter:", uniqueVisibleTechs);
+
+  renderTechColorKey(filteredVisibleEvents);
+
+  if (selected !== '__show_all__') {
+    scrollToWorkerCalendar(selected);
+  }
+}, 0);
+
+
+
 });
+
+
 
 let container = document.getElementById('calendarContainer');
 if (!container) {
@@ -265,6 +297,22 @@ if (!container) {
 } else {
   container.insertBefore(dropdown, workerCalendarsDiv);
 }
+}
+
+function scrollToWorkerCalendar(worker, attempts = 10) {
+  const blocks = document.querySelectorAll('.calendar-block');
+  const target = Array.from(blocks).find(block =>
+    block.dataset.worker?.trim().toLowerCase() === worker.trim().toLowerCase()
+  );
+
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    console.log(`📦 Scrolled into view: ${worker}`);
+  } else if (attempts > 0) {
+    setTimeout(() => scrollToWorkerCalendar(worker, attempts - 1), 300);
+  } else {
+    console.warn(`❌ Could not find calendar block for: ${worker} after retries`);
+  }
 }
 
 function showPopup(eventData) {
@@ -369,7 +417,8 @@ function createCalendar(worker, events, month, year) {
       const span = document.createElement('span');
       span.className = 'event';
 
-      const link = document.createElement('a');
+const link = document.createElement('a');
+link.dataset.fieldTech = ev.fieldTech || '';
       if (ev.warrantyId) {
         link.href = `https://warranty-updates.vanirinstalledsales.info/job-details.html?id=${ev.warrantyId}`;
         link.target = "_blank";
@@ -438,8 +487,10 @@ function createCalendar(worker, events, month, year) {
 }
 
 async function updateCalendar() {
-  const eventsByWorker = await fetchEventsByWorker();
-  renderCalendars(eventsByWorker);
+const eventsByWorker = await fetchEventsByWorker();
+globalEventsByWorker = eventsByWorker; // 🔄 Save for later use
+renderCalendars(eventsByWorker);
+
 }
 
 workerCalendarsDiv.addEventListener('click', (e) => {
@@ -502,9 +553,8 @@ workerCalendarsDiv.addEventListener('click', (e) => {
 
 (async () => {
   const eventsByWorker = await fetchEventsByWorker();
-  renderCalendars(eventsByWorker);
+  renderCalendars(eventsByWorker); // this already calls renderTechColorKey()
 
-  // ✅ 👇 Add scroll-to-first calendar on mobile here
   if (isMobileDevice()) {
     const firstBlock = document.querySelector('.calendar-block');
     if (firstBlock) {
@@ -513,4 +563,81 @@ workerCalendarsDiv.addEventListener('click', (e) => {
     }
   }
 })();
+
+
+function renderTechColorKey(eventsForVisibleDivisions = []) {
+  console.log("🎨 Rendering Tech Color Key...");
+  console.log("📦 Received events:", eventsForVisibleDivisions.length);
+
+  const existing = document.getElementById('techColorKey');
+  if (existing) {
+    console.log("🔁 Removing existing tech color key...");
+    existing.remove();
+  }
+
+  const uniqueTechs = new Set();
+  eventsForVisibleDivisions.forEach(ev => {
+    if (ev.fieldTech) {
+      uniqueTechs.add(ev.fieldTech);
+      console.log(`➕ Found tech: ${ev.fieldTech}`);
+    }
+  });
+
+  if (uniqueTechs.size === 0) {
+    console.warn("⚠️ No field techs to display in key.");
+    return;
+  }
+
+  console.log(`✅ Unique field techs to show: ${[...uniqueTechs].join(', ')}`);
+
+  const keyContainer = document.createElement('div');
+  keyContainer.id = 'techColorKey';
+  keyContainer.style.display = 'flex';
+  keyContainer.style.flexWrap = 'wrap';
+  keyContainer.style.gap = '12px';
+  keyContainer.style.margin = '1rem 0';
+  keyContainer.style.padding = '10px';
+  keyContainer.style.border = '1px solid #ccc';
+  keyContainer.style.borderRadius = '6px';
+  keyContainer.style.backgroundColor = '#f9f9f9';
+
+  const heading = document.createElement('h4');
+  heading.textContent = 'Field Tech Color Key';
+  heading.style.width = '100%';
+  heading.style.margin = '0 0 10px';
+  heading.style.fontWeight = 'bold';
+  keyContainer.appendChild(heading);
+
+  uniqueTechs.forEach(tech => {
+    const color = getColorForTech(tech);
+    console.log(`🎨 Assigning color "${color}" to tech "${tech}"`);
+
+    const item = document.createElement('div');
+    item.style.display = 'flex';
+    item.style.alignItems = 'center';
+    item.style.gap = '6px';
+
+    const swatch = document.createElement('div');
+    swatch.style.width = '16px';
+    swatch.style.height = '16px';
+    swatch.style.borderRadius = '4px';
+    swatch.style.backgroundColor = color;
+    swatch.style.border = '1px solid #000';
+
+    const label = document.createElement('span');
+    label.textContent = tech;
+
+    item.appendChild(swatch);
+    item.appendChild(label);
+    keyContainer.appendChild(item);
+  });
+
+  const container = document.getElementById('calendarContainer');
+  if (container) {
+    console.log("📍 Inserting color key above calendar container.");
+    container.parentNode.insertBefore(keyContainer, container);
+  } else {
+    console.error("❌ Could not find #calendarContainer to insert key.");
+  }
+}
 
